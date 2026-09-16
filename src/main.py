@@ -1,56 +1,34 @@
-import time
-import random
-from graph.graph_state import EnterpriseGraph
-from containment.containment_engine import ContainmentEngine
-from evaluation.evaluator import SystemEvaluator
+from demo_scenario import ATTACK_PATH, ATTACKER, PROTECTED_ASSETS
+from demo_scenario import build_demo_graph
+from shadowcut_controller import ShadowCutController
 
-def generate_enterprise_noise(graph_system: EnterpriseGraph, num_nodes: int = 1000, num_edges: int = 3000):
-    """Injects background network traffic to simulate a massive enterprise environment."""
-    nodes = [f"HOST_{i}" for i in range(num_nodes)]
-    
-    for _ in range(num_edges):
-        src = random.choice(nodes)
-        dst = random.choice(nodes)
-        if src != dst:
-            graph_system.ingest_auth_event(src, dst, timestamp=time.time(), disruption_cost=1.0)
 
-def run_pipeline():
-    print("=== ShadowCut: Experimental Benchmark ===")
-    sys_graph = EnterpriseGraph()
-    engine = ContainmentEngine()
-    evaluator = SystemEvaluator(engine)
-    
-    # 1. Build the target lateral movement path (The actual attack)
-    attacker = "COMPROMISED_PC"
-    asset = "CRITICAL_VAULT"
-    sys_graph.ingest_auth_event(attacker, "PIVOT_1", timestamp=time.time(), disruption_cost=1.0)
-    sys_graph.ingest_auth_event("PIVOT_1", asset, timestamp=time.time(), disruption_cost=5.0)
-    sys_graph.ingest_auth_event(attacker, "PIVOT_2", timestamp=time.time(), disruption_cost=2.0)
-    sys_graph.ingest_auth_event("PIVOT_2", asset, timestamp=time.time(), disruption_cost=3.0)
-    
-    # 2. Inject massive background noise to stress-test the algorithms
-    print("[*] Generating enterprise background traffic (1,000 nodes, 3,000 edges)...")
-    generate_enterprise_noise(sys_graph, num_nodes=1000, num_edges=3000)
-    
-    sys_graph.print_graph_metrics(sys_graph.G, "Global Enterprise Graph")
-    
-    # 3. Execute the Benchmark
-    print("\n[*] Racing ShadowCut vs. Full-Graph Baseline...")
-    metrics = evaluator.run_benchmark(sys_graph.G, attacker, asset, radius=2)
-    
-    print("\n=== Experimental Results ===")
-    print(f"Baseline Execution Latency : {metrics['baseline_time_ms']:.4f} ms")
-    print(f"ShadowCut Execution Latency: {metrics['shadow_time_ms']:.4f} ms")
-    
-    speedup = metrics['baseline_time_ms'] / max(metrics['shadow_time_ms'], 0.0001)
-    print(f"\n[+] ShadowCut is {speedup:.2f}x faster.")
-    
-    print(f"\nMathematical Accuracy Check:")
-    print(f"Baseline Cost: {metrics['baseline_cost']} | ShadowCut Cost: {metrics['shadow_cost']}")
-    if metrics['baseline_cost'] == metrics['shadow_cost']:
-        print("[SUCCESS] ShadowCut achieved mathematically identical containment at a fraction of the compute cost.")
-    else:
-        print("[WARNING] Topological mismatch. The bounded radius may be too small.")
+def run_pipeline() -> None:
+    graph = build_demo_graph()
+    controller = ShadowCutController(graph)
+    result = controller.analyze_incident(
+        attacker=ATTACKER,
+        targets=PROTECTED_ASSETS,
+        budget=10.0,
+        initial_radius=2,
+        max_radius=5,
+        attack_path=ATTACK_PATH,
+    )
+
+    print("=== ShadowCut Incident Analysis ===")
+    print(f"Incident detected : {result.incident_detected}")
+    print(f"Initial radius    : k={result.initial_radius}")
+    print(f"Final radius      : k={result.final_radius}")
+    print(f"Locality          : {result.locality_vertex_ratio:.2%} of nodes / {result.locality_edge_ratio:.2%} of edges")
+    print(f"Max flow          : {result.max_flow}")
+    print(f"Primary min-cut   : {result.min_cut_cost}")
+    print(f"Selected edges    : {result.selected_edges}")
+    print(f"Disruption cost   : {result.disruption_cost:.2f} / 10.00")
+    print(f"Protected assets  : {result.protected_assets}")
+    print(f"Unprotected       : {result.unprotected_assets}")
+    print(f"Global containment: {result.global_containment}")
+    print(f"Validation        : {result.validation_message}")
+
 
 if __name__ == "__main__":
     run_pipeline()
