@@ -1,0 +1,9 @@
+100,C001$@DOM1,U001@DOM1,C001,C002,Negotiate,Batch,LogOn,Success
+105,C001$@DOM1,U001@DOM1,C001,C003,Negotiate,Batch,LogOn,Success
+110,C002$@DOM1,U002@DOM1,C002,C010,Kerberos,Interactive,LogOn,Success
+115,C003$@DOM1,U003@DOM1,C003,C010,Kerberos,Interactive,LogOn,Success
+120,C010$@DOM1,U010@DOM1,C010,C020,Kerberos,Network,LogOn,Success
+125,C020$@DOM1,U020@DOM1,C020,C030,Negotiate,Network,LogOn,Success
+130,C030$@DOM1,U030@DOM1,C030,C040,Negotiate,Network,LogOn,Success
+135,C040$@DOM1,U040@DOM1,C040,C050,Negotiate,Network,LogOn,Success
+140,C001$@DOM1,U001@DOM1,C001,C002,Negotiate,Batch,LogOn,Failure
